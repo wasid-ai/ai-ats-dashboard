@@ -4,6 +4,7 @@ import pandas as pd
 import google.generativeai as genai
 from pypdf import PdfReader
 from jsonschema import validate
+import concurrent.futures
 
 st.set_page_config(page_title="Ultimate AI ATS", page_icon="🚀", layout="wide")
 st.title("🚀 Ultimate AI-Powered ATS & Cover Letter Generator")
@@ -56,44 +57,53 @@ def safe_parse(raw_text):
     try: return json.loads(clean_json(raw_text))
     except: return None
 
+# Bulletproof Timeout Wrapper taaki app kabhi hang na ho
+def safe_generate_content(model, prompt, timeout_secs=20):
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(model.generate_content, prompt)
+            return future.result(timeout=timeout_secs)
+    except concurrent.futures.TimeoutError:
+        return None
+    except Exception as e:
+        return None
+
 def get_jd_reqs(jd, model):
     prompt = f"Analyze Job Description and return JSON exactly matching keys: min_experience (int), required_skills (array), preferred_skills (array), min_education (string). JD: {jd}"
-    try:
-        response = model.generate_content(prompt, generation_config={"temperature": 0.1, "max_output_tokens": 800})
+    response = safe_generate_content(model, prompt)
+    if response and response.text:
         res = safe_parse(response.text)
         if res: return res
-    except: pass
     return {"min_experience": 0, "required_skills": [], "preferred_skills": [], "min_education": "bachelor"}
 
 def parse_resume(text, model):
     prompt = f"Parse resume text into JSON EXACTLY matching schema. Keys: full_name (string), years_experience (integer), technical_skills (array of strings), projects (array of strings), education_level (high_school/bachelor/master/phd/other). Resume: {text}"
-    try:
-        response = model.generate_content(
-            prompt,
-            generation_config={"temperature": 0.1, "max_output_tokens": 1000}
-        )
+    response = safe_generate_content(model, prompt)
+    if response and response.text:
         raw_response = response.text
         parsed = safe_parse(raw_response)
         if parsed:
             if "years_experience" in parsed: 
                 parsed["years_experience"] = int(float(parsed["years_experience"]))
-            validate(instance=parsed, schema=RESUME_SCHEMA)
-            return parsed
+            try:
+                validate(instance=parsed, schema=RESUME_SCHEMA)
+                return parsed
+            except Exception as val_e:
+                st.error(f"Schema Validation Error: {str(val_e)}")
         else:
             st.error(f"JSON Parse Failed. Raw Response was: {raw_response}")
-    except Exception as e:
-        st.error(f"Validation/API Error: {str(e)}")
+    else:
+        st.error("⚠️ AI API Timeout or Connection Failed. Please try again.")
     return None
 
 def generate_cover_letter(cand, jd, model):
     prompt = f"""Write a professional, modern, and highly persuasive Cover Letter for {cand['full_name']} applying for this Job Description: {jd}.
     Highlight their skills: {cand.get('technical_skills', [])} and projects: {cand.get('projects', [])}. 
     Keep it under 300 words. Do not include placeholders like [Your Address]. Make it ready to copy-paste."""
-    try:
-        response = model.generate_content(prompt, generation_config={"temperature": 0.3, "max_output_tokens": 800})
+    response = safe_generate_content(model, prompt)
+    if response and response.text:
         return response.text
-    except Exception as e:
-        return "⚠️ Failed to generate cover letter."
+    return "⚠️ Failed to generate cover letter due to timeout."
 
 def score_candidate(candidate, reqs):
     skills_lower = [s.lower() for s in candidate.get("technical_skills", [])]
@@ -129,7 +139,7 @@ if st.button("🚀 Process & Generate AI Report"):
     else:
         with st.spinner("AI is analyzing resumes and writing Cover Letters... ⏳"):
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             dynamic_reqs = get_jd_reqs(job_description_text, model)
 
             report_data = []
