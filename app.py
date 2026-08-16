@@ -62,21 +62,37 @@ def safe_parse(raw_text):
 
 def get_working_model(api_key):
     genai.configure(api_key=api_key)
+    # Naye users ke liye stable models ko pehle try karenge, 2.5-flash ko skip karenge
+    preferred_models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash']
+    
+    for model_name in preferred_models:
+        try:
+            m = genai.GenerativeModel(model_name)
+            # Test content generation to verify accessibility
+            m.generate_content("test", generation_config={"max_output_tokens": 5})
+            st.sidebar.success(f"Connected using: {model_name}")
+            return m
+        except Exception:
+            continue
+            
+    # Agar upar wale fail ho jayein, toh list models se check karo par 2.5-flash mat uthana
     try:
-        # Automatically find an available model supporting generateContent
         models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        st.sidebar.success(f"Available Models: {len(models)} found")
-        
-        # Try finding a flash or pro model
         for name in models:
-            if 'flash' in name.lower():
-                return genai.GenerativeModel(name.replace("models/", ""))
-        if models:
-            return genai.GenerativeModel(models[0].replace("models/", ""))
+            clean_name = name.replace("models/", "")
+            if '2.5-flash' in clean_name:
+                continue # Skip restricted 2.5-flash model
+            if 'flash' in name.lower() or 'pro' in name.lower():
+                try:
+                    m = genai.GenerativeModel(clean_name)
+                    m.generate_content("test", generation_config={"max_output_tokens": 5})
+                    st.sidebar.success(f"Connected using: {clean_name}")
+                    return m
+                except:
+                    continue
     except Exception as e:
         st.error(f"Model Discovery Error: {str(e)}")
     
-    # Fallback default
     return genai.GenerativeModel('gemini-1.5-flash')
 
 def get_jd_reqs(jd, model):
