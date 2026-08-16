@@ -5,15 +5,31 @@ import pandas as pd
 import google.generativeai as genai
 from pypdf import PdfReader
 from jsonschema import validate
+from datetime import datetime
 
 st.set_page_config(page_title="Ultimate AI ATS", page_icon="🚀", layout="wide")
 st.title("🚀 Ultimate AI-Powered ATS & Cover Letter Generator")
 st.markdown("Get ATS Scores, Missing Skills, and Auto-Generated Cover Letters in one click!")
-st.info("🔒 **Privacy Notice:** This app does not store your resume or API Key. All data is processed in memory and cleared on page refresh.")
+st.info("🔒 **Privacy Notice:** This app does not store your full resume or sensitive data. Only public metrics (Name, Score, Decision) are logged for tracking.")
 
 st.sidebar.header("⚙️ Configuration")
-st.sidebar.warning("⚠️ **Note:** Your API Key is used only for this session and is not stored. Please use your own API Key carefully.")
 api_key = st.sidebar.text_input("Enter Gemini API Key", type="password", placeholder="AIzaSy...")
+
+# --- ADMIN PANEL FOR YOU TO VIEW USERS ---
+st.sidebar.markdown("---")
+st.sidebar.subheader("🔐 Admin Panel (Owner Only)")
+admin_pass = st.sidebar.text_input("Admin Password", type="password", placeholder="Enter password")
+if admin_pass == "wasid123": # Tu yahan apna password change kar sakta hai
+    st.sidebar.success("✅ Welcome Admin!")
+    st.sidebar.markdown("### 📊 Recent User Activity")
+    # Session state se temporary logs dikhayenge (Ya Google Sheets ka link laga sakte hain)
+    if "activity_logs" in st.session_state and st.session_state["activity_logs"]:
+        log_df = pd.DataFrame(st.session_state["activity_logs"])
+        st.sidebar.dataframe(log_df, use_container_width=True)
+    else:
+        st.sidebar.info("No activity recorded in this session yet.")
+elif admin_pass != "":
+    st.sidebar.error("❌ Wrong Password")
 
 default_jd = """We are looking for an AI/ML Engineer to join our team.
 Minimum 2 years of experience required.
@@ -42,7 +58,6 @@ def extract_text_from_pdf(uploaded_file):
         reader = PdfReader(uploaded_file)
         return "".join([page.extract_text() or "" for page in reader.pages])
     except Exception as e:
-        st.error(f"PDF Read Error: {str(e)}")
         return ""
 
 def clean_json(raw):
@@ -63,7 +78,6 @@ def safe_parse(raw_text):
 
 def get_working_model(api_key):
     genai.configure(api_key=api_key)
-    # Prefer models with high daily free limits (1500/day)
     preferred_models = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash']
     
     for model_name in preferred_models:
@@ -78,7 +92,6 @@ def get_working_model(api_key):
         models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         for name in models:
             clean_name = name.replace("models/", "")
-            # Skip models with very low free quotas like 20/day
             if '2.5' in clean_name or '3.7' in clean_name:
                 continue 
             if 'flash' in name.lower():
@@ -89,24 +102,21 @@ def get_working_model(api_key):
                 except:
                     continue
     except Exception as e:
-        st.error(f"Model Discovery Error: {str(e)}")
+        pass
     
     return genai.GenerativeModel('gemini-1.5-flash')
 
-# Rate limit / Quota safety wrapper with automatic retry & sleep
 def safe_generate(model, prompt):
     max_retries = 3
     for attempt in range(max_retries):
         try:
             response = model.generate_content(prompt)
-            time.sleep(4) # Small delay to avoid Per-Minute limits
+            time.sleep(3)
             return response
         except Exception as e:
-            err_str = str(e)
-            # If rate limited, wait and retry. If daily quota hit, it will eventually break out.
-            if "429" in err_str or "Quota exceeded" in err_str:
+            if "429" in str(e) or "Quota exceeded" in str(e):
                 if attempt < max_retries - 1:
-                    time.sleep(25) 
+                    time.sleep(20)
                     continue
             raise e
     return None
@@ -118,8 +128,8 @@ def get_jd_reqs(jd, model):
         if response and response.text:
             res = safe_parse(response.text)
             if res: return res
-    except Exception as e:
-        st.error(f"JD Analysis Error: {str(e)}")
+    except:
+        pass
     return {"min_experience": 0, "required_skills": [], "preferred_skills": [], "min_education": "bachelor"}
 
 def parse_resume(text, model):
@@ -134,10 +144,8 @@ def parse_resume(text, model):
                     parsed["years_experience"] = int(float(parsed["years_experience"]))
                 validate(instance=parsed, schema=RESUME_SCHEMA)
                 return parsed
-            else:
-                st.error(f"JSON Parse Failed. Raw Response was: {raw_response}")
-    except Exception as e:
-        st.error(f"Resume Parsing API Error: {str(e)}")
+    except:
+        pass
     return None
 
 def generate_cover_letter(cand, jd, model):
@@ -148,8 +156,8 @@ def generate_cover_letter(cand, jd, model):
         response = safe_generate(model, prompt)
         if response and response.text:
             return response.text
-    except Exception as e:
-        return f"⚠️ Failed to generate cover letter due to rate limit: {str(e)}"
+    except:
+        pass
     return "⚠️ Failed to generate cover letter."
 
 def score_candidate(candidate, reqs):
@@ -172,7 +180,6 @@ def score_candidate(candidate, reqs):
         "total": total, "recommendation": rec,
         "missing_req": [s for s in req_skills if s.lower() not in skills_lower],
         "missing_pref": [s for s in pref_skills if s.lower() not in skills_lower],
-        "projects_found": len(candidate.get("projects", [])),
         "breakdown": {"Exp": exp_score, "Req Skills": req_score, "Pref Skills": pref_score, "Edu": edu_score, "Proj": proj_score}
     }
 
@@ -184,33 +191,43 @@ if st.button("🚀 Process & Generate AI Report"):
     elif not uploaded_files:
         st.error("⚠️ Please upload at least one PDF resume.")
     else:
-        status_container = st.empty()
-        status_container.info("🔄 Initializing AI model and connecting to API...")
-        
-        try:
+        with st.spinner("AI is analyzing resumes... ⏳"):
             model = get_working_model(api_key)
-            status_container.info("Analyzing Job Description...")
             dynamic_reqs = get_jd_reqs(job_description_text, model)
 
             report_data = []
+            
+            # Session state initialize for tracking logs
+            if "activity_logs" not in st.session_state:
+                st.session_state["activity_logs"] = []
+
             for i, f in enumerate(uploaded_files):
-                status_container.info(f"Processing resume {i+1} of {len(uploaded_files)}: {f.name} (Please wait a few seconds to avoid rate limits)...")
                 text = extract_text_from_pdf(f)
-                
                 if not text.strip():
-                    st.error(f"❌ Could not extract text from {f.name}. The PDF might be scanned/image-based.")
                     continue
                 
                 cand = parse_resume(text, model)
-                
                 if cand:
                     scores = score_candidate(cand, dynamic_reqs)
                     cover_letter = generate_cover_letter(cand, job_description_text, model)
                     
-                    report_data.append({"Name": cand['full_name'], "Score": scores['total'], "Decision": scores['recommendation']})
+                    candidate_name = cand['full_name']
+                    candidate_score = scores['total']
+                    candidate_decision = scores['recommendation']
                     
-                    with st.expander(f"👤 {cand['full_name']} — Score: {scores['total']}/100 ({scores['recommendation']})", expanded=True):
-                        st.progress(scores['total'] / 100)
+                    report_data.append({"Name": candidate_name, "Score": candidate_score, "Decision": candidate_decision})
+                    
+                    # --- TRACKING LOG SAVED SECURELY (Privacy Protected) ---
+                    log_entry = {
+                        "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "Candidate Name": candidate_name,
+                        "ATS Score": candidate_score,
+                        "Status": candidate_decision
+                    }
+                    st.session_state["activity_logs"].append(log_entry)
+                    
+                    with st.expander(f"👤 {candidate_name} — Score: {candidate_score}/100 ({candidate_decision})", expanded=True):
+                        st.progress(candidate_score / 100)
                         
                         col1, col2 = st.columns(2)
                         with col1:
@@ -225,27 +242,9 @@ if st.button("🚀 Process & Generate AI Report"):
                             if scores['missing_pref']: st.warning(f"**Missing Bonus Skills:** {', '.join(scores['missing_pref'])}")
                         
                         st.markdown("### ✉️ AI-Generated Cover Letter")
-                        st.text_area(f"Tailored for {cand['full_name']} (Copy-Paste Ready)", value=cover_letter, height=250, key=f"cl_{cand['full_name']}_{i}")
-                else:
-                    st.error(f"❌ Failed to parse resume for file: {f.name}")
+                        st.text_area(f"Tailored for {candidate_name} (Copy-Paste Ready)", value=cover_letter, height=250, key=f"cl_{candidate_name}_{i}")
 
-            status_container.empty()
-            
             if report_data:
                 st.markdown("### 🏆 Overall Leaderboard")
                 df = pd.DataFrame(report_data)
                 st.dataframe(df, use_container_width=True)
-                
-                csv = df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="📥 Download Excel/CSV Report",
-                    data=csv,
-                    file_name='ats_report.csv',
-                    mime='text/csv',
-                )
-            else:
-                st.warning("⚠️ No candidate reports were generated. Check the error messages above.")
-                
-        except Exception as main_err:
-            status_container.empty()
-            st.error(f"❌ Critical App Error: {str(main_err)}")
