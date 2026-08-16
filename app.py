@@ -1,4 +1,5 @@
 import json
+import time
 import streamlit as st
 import pandas as pd
 import google.generativeai as genai
@@ -62,31 +63,26 @@ def safe_parse(raw_text):
 
 def get_working_model(api_key):
     genai.configure(api_key=api_key)
-    # Naye users ke liye stable models ko pehle try karenge, 2.5-flash ko skip karenge
     preferred_models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash']
     
     for model_name in preferred_models:
         try:
             m = genai.GenerativeModel(model_name)
-            # Test content generation to verify accessibility
             m.generate_content("test", generation_config={"max_output_tokens": 5})
-            st.sidebar.success(f"Connected using: {model_name}")
             return m
         except Exception:
             continue
             
-    # Agar upar wale fail ho jayein, toh list models se check karo par 2.5-flash mat uthana
     try:
         models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         for name in models:
             clean_name = name.replace("models/", "")
             if '2.5-flash' in clean_name:
-                continue # Skip restricted 2.5-flash model
+                continue 
             if 'flash' in name.lower() or 'pro' in name.lower():
                 try:
                     m = genai.GenerativeModel(clean_name)
                     m.generate_content("test", generation_config={"max_output_tokens": 5})
-                    st.sidebar.success(f"Connected using: {clean_name}")
                     return m
                 except:
                     continue
@@ -95,12 +91,31 @@ def get_working_model(api_key):
     
     return genai.GenerativeModel('gemini-1.5-flash')
 
+# Rate limit / Quota safety wrapper with automatic retry & sleep
+def safe_generate(model, prompt):
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            # Small delay between requests to respect free tier (5 req/min)
+            time.sleep(4)
+            return response
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "Quota exceeded" in err_str:
+                if attempt < max_retries - 1:
+                    time.sleep(25) # Wait for quota reset
+                    continue
+            raise e
+    return None
+
 def get_jd_reqs(jd, model):
     prompt = f"Analyze Job Description and return JSON exactly matching keys: min_experience (int), required_skills (array), preferred_skills (array), min_education (string). JD: {jd}"
     try:
-        response = model.generate_content(prompt)
-        res = safe_parse(response.text)
-        if res: return res
+        response = safe_generate(model, prompt)
+        if response and response.text:
+            res = safe_parse(response.text)
+            if res: return res
     except Exception as e:
         st.error(f"JD Analysis Error: {str(e)}")
     return {"min_experience": 0, "required_skills": [], "preferred_skills": [], "min_education": "bachelor"}
@@ -108,16 +123,17 @@ def get_jd_reqs(jd, model):
 def parse_resume(text, model):
     prompt = f"Parse resume text into JSON EXACTLY matching schema. Keys: full_name (string), years_experience (integer), technical_skills (array of strings), projects (array of strings), education_level (high_school/bachelor/master/phd/other). Resume: {text}"
     try:
-        response = model.generate_content(prompt)
-        raw_response = response.text
-        parsed = safe_parse(raw_response)
-        if parsed:
-            if "years_experience" in parsed: 
-                parsed["years_experience"] = int(float(parsed["years_experience"]))
-            validate(instance=parsed, schema=RESUME_SCHEMA)
-            return parsed
-        else:
-            st.error(f"JSON Parse Failed. Raw Response was: {raw_response}")
+        response = safe_generate(model, prompt)
+        if response and response.text:
+            raw_response = response.text
+            parsed = safe_parse(raw_response)
+            if parsed:
+                if "years_experience" in parsed: 
+                    parsed["years_experience"] = int(float(parsed["years_experience"]))
+                validate(instance=parsed, schema=RESUME_SCHEMA)
+                return parsed
+            else:
+                st.error(f"JSON Parse Failed. Raw Response was: {raw_response}")
     except Exception as e:
         st.error(f"Resume Parsing API Error: {str(e)}")
     return None
@@ -127,10 +143,12 @@ def generate_cover_letter(cand, jd, model):
     Highlight their skills: {cand.get('technical_skills', [])} and projects: {cand.get('projects', [])}. 
     Keep it under 300 words. Do not include placeholders like [Your Address]. Make it ready to copy-paste."""
     try:
-        response = model.generate_content(prompt)
-        return response.text
+        response = safe_generate(model, prompt)
+        if response and response.text:
+            return response.text
     except Exception as e:
-        return f"⚠️ Failed to generate cover letter: {str(e)}"
+        return f"⚠️ Failed to generate cover letter due to rate limit: {str(e)}"
+    return "⚠️ Failed to generate cover letter."
 
 def score_candidate(candidate, reqs):
     skills_lower = [s.lower() for s in candidate.get("technical_skills", [])]
@@ -174,7 +192,7 @@ if st.button("🚀 Process & Generate AI Report"):
 
             report_data = []
             for i, f in enumerate(uploaded_files):
-                status_container.info(f"Processing resume {i+1} of {len(uploaded_files)}: {f.name}...")
+                status_container.info(f"Processing resume {i+1} of {len(uploaded_files)}: {f.name} (Please wait a few seconds to avoid rate limits)...")
                 text = extract_text_from_pdf(f)
                 
                 if not text.strip():
