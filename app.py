@@ -59,7 +59,8 @@ def safe_parse(raw_text):
 def get_jd_reqs(jd, model):
     prompt = f"Analyze Job Description and return JSON exactly matching keys: min_experience (int), required_skills (array), preferred_skills (array), min_education (string). JD: {jd}"
     try:
-        res = safe_parse(model.generate_content(prompt).text)
+        response = model.generate_content(prompt, generation_config={"temperature": 0.1, "max_output_tokens": 800})
+        res = safe_parse(response.text)
         if res: return res
     except: pass
     return {"min_experience": 0, "required_skills": [], "preferred_skills": [], "min_education": "bachelor"}
@@ -67,10 +68,15 @@ def get_jd_reqs(jd, model):
 def parse_resume(text, model):
     prompt = f"Parse resume text into JSON EXACTLY matching schema. Keys: full_name (string), years_experience (integer), technical_skills (array of strings), projects (array of strings), education_level (high_school/bachelor/master/phd/other). Resume: {text}"
     try:
-        raw_response = model.generate_content(prompt).text
+        response = model.generate_content(
+            prompt,
+            generation_config={"temperature": 0.1, "max_output_tokens": 1000}
+        )
+        raw_response = response.text
         parsed = safe_parse(raw_response)
         if parsed:
-            if "years_experience" in parsed: parsed["years_experience"] = int(float(parsed["years_experience"]))
+            if "years_experience" in parsed: 
+                parsed["years_experience"] = int(float(parsed["years_experience"]))
             validate(instance=parsed, schema=RESUME_SCHEMA)
             return parsed
         else:
@@ -84,7 +90,8 @@ def generate_cover_letter(cand, jd, model):
     Highlight their skills: {cand.get('technical_skills', [])} and projects: {cand.get('projects', [])}. 
     Keep it under 300 words. Do not include placeholders like [Your Address]. Make it ready to copy-paste."""
     try:
-        return model.generate_content(prompt).text
+        response = model.generate_content(prompt, generation_config={"temperature": 0.3, "max_output_tokens": 800})
+        return response.text
     except Exception as e:
         return "⚠️ Failed to generate cover letter."
 
@@ -122,8 +129,7 @@ if st.button("🚀 Process & Generate AI Report"):
     else:
         with st.spinner("AI is analyzing resumes and writing Cover Letters... ⏳"):
             genai.configure(api_key=api_key)
-            # Updated to gemini-3.7-flash
-            model = genai.GenerativeModel('gemini-3.7-flash')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             dynamic_reqs = get_jd_reqs(job_description_text, model)
 
             report_data = []
