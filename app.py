@@ -8,6 +8,7 @@ from jsonschema import validate
 st.set_page_config(page_title="Ultimate AI ATS", page_icon="🚀", layout="wide")
 st.title("🚀 Ultimate AI-Powered ATS & Cover Letter Generator")
 st.markdown("Get ATS Scores, Missing Skills, and Auto-Generated Cover Letters in one click!")
+st.info("🔒 **Privacy Notice:** This app does not store your resume or API Key. All data is processed in memory and cleared on page refresh.")
 
 st.sidebar.header("⚙️ Configuration")
 st.sidebar.warning("⚠️ **Note:** Your API Key is used only for this session and is not stored. Please use your own API Key carefully.")
