@@ -4,7 +4,6 @@ import pandas as pd
 import google.generativeai as genai
 from pypdf import PdfReader
 from jsonschema import validate
-import concurrent.futures
 
 st.set_page_config(page_title="Ultimate AI ATS", page_icon="🚀", layout="wide")
 st.title("🚀 Ultimate AI-Powered ATS & Cover Letter Generator")
@@ -41,7 +40,9 @@ def extract_text_from_pdf(uploaded_file):
     try:
         reader = PdfReader(uploaded_file)
         return "".join([page.extract_text() or "" for page in reader.pages])
-    except: return ""
+    except Exception as e:
+        st.error(f"PDF Read Error: {str(e)}")
+        return ""
 
 def clean_json(raw):
     raw = raw.strip()
@@ -54,56 +55,66 @@ def clean_json(raw):
     return raw.strip()
 
 def safe_parse(raw_text):
-    try: return json.loads(clean_json(raw_text))
-    except: return None
-
-# Bulletproof Timeout Wrapper taaki app kabhi hang na ho
-def safe_generate_content(model, prompt, timeout_secs=20):
-    try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(model.generate_content, prompt)
-            return future.result(timeout=timeout_secs)
-    except concurrent.futures.TimeoutError:
-        return None
+    try: 
+        return json.loads(clean_json(raw_text))
     except Exception as e:
         return None
 
+def get_working_model(api_key):
+    genai.configure(api_key=api_key)
+    try:
+        # Automatically find an available model supporting generateContent
+        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        st.sidebar.success(f"Available Models: {len(models)} found")
+        
+        # Try finding a flash or pro model
+        for name in models:
+            if 'flash' in name.lower():
+                return genai.GenerativeModel(name.replace("models/", ""))
+        if models:
+            return genai.GenerativeModel(models[0].replace("models/", ""))
+    except Exception as e:
+        st.error(f"Model Discovery Error: {str(e)}")
+    
+    # Fallback default
+    return genai.GenerativeModel('gemini-1.5-flash')
+
 def get_jd_reqs(jd, model):
     prompt = f"Analyze Job Description and return JSON exactly matching keys: min_experience (int), required_skills (array), preferred_skills (array), min_education (string). JD: {jd}"
-    response = safe_generate_content(model, prompt)
-    if response and response.text:
+    try:
+        response = model.generate_content(prompt)
         res = safe_parse(response.text)
         if res: return res
+    except Exception as e:
+        st.error(f"JD Analysis Error: {str(e)}")
     return {"min_experience": 0, "required_skills": [], "preferred_skills": [], "min_education": "bachelor"}
 
 def parse_resume(text, model):
     prompt = f"Parse resume text into JSON EXACTLY matching schema. Keys: full_name (string), years_experience (integer), technical_skills (array of strings), projects (array of strings), education_level (high_school/bachelor/master/phd/other). Resume: {text}"
-    response = safe_generate_content(model, prompt)
-    if response and response.text:
+    try:
+        response = model.generate_content(prompt)
         raw_response = response.text
         parsed = safe_parse(raw_response)
         if parsed:
             if "years_experience" in parsed: 
                 parsed["years_experience"] = int(float(parsed["years_experience"]))
-            try:
-                validate(instance=parsed, schema=RESUME_SCHEMA)
-                return parsed
-            except Exception as val_e:
-                st.error(f"Schema Validation Error: {str(val_e)}")
+            validate(instance=parsed, schema=RESUME_SCHEMA)
+            return parsed
         else:
             st.error(f"JSON Parse Failed. Raw Response was: {raw_response}")
-    else:
-        st.error("⚠️ AI API Timeout or Connection Failed. Please try again.")
+    except Exception as e:
+        st.error(f"Resume Parsing API Error: {str(e)}")
     return None
 
 def generate_cover_letter(cand, jd, model):
     prompt = f"""Write a professional, modern, and highly persuasive Cover Letter for {cand['full_name']} applying for this Job Description: {jd}.
     Highlight their skills: {cand.get('technical_skills', [])} and projects: {cand.get('projects', [])}. 
     Keep it under 300 words. Do not include placeholders like [Your Address]. Make it ready to copy-paste."""
-    response = safe_generate_content(model, prompt)
-    if response and response.text:
+    try:
+        response = model.generate_content(prompt)
         return response.text
-    return "⚠️ Failed to generate cover letter due to timeout."
+    except Exception as e:
+        return f"⚠️ Failed to generate cover letter: {str(e)}"
 
 def score_candidate(candidate, reqs):
     skills_lower = [s.lower() for s in candidate.get("technical_skills", [])]
@@ -133,18 +144,27 @@ uploaded_files = st.file_uploader("📂 Upload Candidate Resumes (PDF)", type=["
 
 if st.button("🚀 Process & Generate AI Report"):
     if not api_key:
-        st.error("⚠️ Enter Gemini API Key in sidebar!")
+        st.error("⚠️ Please enter your Gemini API Key in the sidebar!")
     elif not uploaded_files:
-        st.error("⚠️ Upload PDF.")
+        st.error("⚠️ Please upload at least one PDF resume.")
     else:
-        with st.spinner("AI is analyzing resumes and writing Cover Letters... ⏳"):
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+        status_container = st.empty()
+        status_container.info("🔄 Initializing AI model and connecting to API...")
+        
+        try:
+            model = get_working_model(api_key)
+            status_container.info("Analyzing Job Description...")
             dynamic_reqs = get_jd_reqs(job_description_text, model)
 
             report_data = []
-            for f in uploaded_files:
+            for i, f in enumerate(uploaded_files):
+                status_container.info(f"Processing resume {i+1} of {len(uploaded_files)}: {f.name}...")
                 text = extract_text_from_pdf(f)
+                
+                if not text.strip():
+                    st.error(f"❌ Could not extract text from {f.name}. The PDF might be scanned/image-based.")
+                    continue
+                
                 cand = parse_resume(text, model)
                 
                 if cand:
@@ -169,10 +189,12 @@ if st.button("🚀 Process & Generate AI Report"):
                             if scores['missing_pref']: st.warning(f"**Missing Bonus Skills:** {', '.join(scores['missing_pref'])}")
                         
                         st.markdown("### ✉️ AI-Generated Cover Letter")
-                        st.text_area(f"Tailored for {cand['full_name']} (Copy-Paste Ready)", value=cover_letter, height=250, key=f"cl_{cand['full_name']}")
+                        st.text_area(f"Tailored for {cand['full_name']} (Copy-Paste Ready)", value=cover_letter, height=250, key=f"cl_{cand['full_name']}_{i}")
                 else:
                     st.error(f"❌ Failed to parse resume for file: {f.name}")
 
+            status_container.empty()
+            
             if report_data:
                 st.markdown("### 🏆 Overall Leaderboard")
                 df = pd.DataFrame(report_data)
@@ -185,3 +207,9 @@ if st.button("🚀 Process & Generate AI Report"):
                     file_name='ats_report.csv',
                     mime='text/csv',
                 )
+            else:
+                st.warning("⚠️ No candidate reports were generated. Check the error messages above.")
+                
+        except Exception as main_err:
+            status_container.empty()
+            st.error(f"❌ Critical App Error: {str(main_err)}")
