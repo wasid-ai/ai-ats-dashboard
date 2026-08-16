@@ -10,6 +10,7 @@ st.title("🚀 Ultimate AI-Powered ATS & Cover Letter Generator")
 st.markdown("Get ATS Scores, Missing Skills, and Auto-Generated Cover Letters in one click!")
 
 st.sidebar.header("⚙️ Configuration")
+st.sidebar.warning("⚠️ **Note:** Your API Key is used only for this session and is not stored. Please use your own API Key carefully.")
 api_key = st.sidebar.text_input("Enter Gemini API Key", type="password", placeholder="AIzaSy...")
 
 default_jd = """We are looking for an AI/ML Engineer to join our team.
