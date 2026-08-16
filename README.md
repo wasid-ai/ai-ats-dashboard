@@ -1,47 +1,49 @@
 🚀 Ultimate AI-Powered ATS & Cover Letter Generator
-Yeh project ek end-to-end Generative AI application hai jo resume screening aur cover letter generation ko automate karta hai. Yeh tool job seekers ke liye ek game-changer ki tarah kaam karta hai jo apne resume ko target job description ke hisaab se optimize karna chahte hain.
+This project is an end-to-end Generative AI application designed to automate resume screening and cover letter generation. It acts as a powerful tool for job seekers who want to optimize their resumes according to specific target job descriptions.
 
 ✨ Key Features
-ATS Scoring: AI automatically resume ko analyze karta hai aur score provide karta hai (0-100).
+ATS Scoring: The AI automatically analyzes resumes and provides an objective compatibility score ranging from 0 to 100.
 
-AI Upgrade Advice: System yeh identify karta hai ki kaunsi skills missing hain taaki resume ko aur behtar banaya ja sake.
+AI Upgrade Advice: The system identifies missing core and preferred skills, giving actionable feedback to help improve the resume.
 
-Cover Letter Generation: Har candidate ke liye unki skills aur projects ke basis par ek personalized cover letter generate hota hai.
+Cover Letter Generation: Instantly drafts a personalized, professional cover letter tailored to each candidate's unique skill set and projects.
 
-Data Export: Recruiter ke liye poora analysis ek click mein Excel (CSV) format mein download ho jata hai.
+Data Export: Allows recruiters to export the complete evaluation report into an Excel (CSV) file with a single click.
 
-🔒 Privacy & Security (Sabse Important Part)
-Yeh application poori tarah se Stateless architecture par bani hai:
+🔒 Privacy & Security (Core Highlight)
+The application is built on a strict Stateless architecture:
 
-Data Save Nahi Hota: App kisi bhi resume ya API key ko server par store nahi karti.
+No Data Persistence: The app does not save candidate resumes or API keys on any persistent server database.
 
-Memory-Based Processing: Sab kuch sirf tab tak active memory mein rehta hai jab tak page refresh nahi ho jata.
+Memory-Based Processing: All data exists solely within the active session memory and is completely wiped out when the page is refreshed.
 
-Transparent Privacy Notice: Users ke liye clear privacy notices diye gaye hain taaki total transparency bani rahe.
+Transparent Privacy Notices: Built-in UI alerts and privacy banners ensure complete transparency for all users.
 
-🛠️ Development Journey & Experience
-Is project ko banane ka safar step-by-step complete kiya gaya hai:
+🛠️ Development Journey
+The creation of this project followed a structured, step-by-step engineering approach:
 
-Colab to Cloud: Sabse pehle prototyping Google Colab mein ki gayi, aur baad mein deployment ke liye GitHub aur Streamlit Cloud ka use kiya gaya.
+Colab to Cloud: Initial logic, testing, and prototyping were done in Google Colab before migrating the codebase to GitHub and deploying it live on Streamlit Cloud.
 
-Iteration & Bug Fixing: Development ke dauran code ko bar-bar improve kiya gaya, errors ko fix kiya gaya aur UI/UX ko professional banaya gaya.
+Iteration & Bug Fixing: The code was continuously refined, handling syntax and execution errors while polishing the overall user interface.
 
-Security Integration: Professional standards maintain karne ke liye privacy notices aur safety warnings add ki gayin.
+Security Integration: Privacy notices and safety disclaimers were integrated to maintain professional development standards.
 
-👥 Kaun Use Kar Sakta Hai?
-Yeh tool inke liye bahut useful hai:
+👥 Who Is This For?
+This tool is built for:
 
-Job Seekers
+Job Seekers looking to optimize resumes and generate cover letters.
 
-Recruiters
+Recruiters looking to quickly screen multiple candidates.
 
-Career Coaches
+Career Coaches helping clients improve application materials.
 
-🚀 Kaise Use Karein?
-Website par apni Gemini API Key enter karein (Sidebar mein).
+🚀 How to Use
+Open the live application link.
 
-Target role ki Job Description paste karein.
+Enter your Gemini API Key into the sidebar configuration panel.
 
-Apne target PDF Resumes upload karein.
+Paste the target Job Description into the designated text area.
 
-"Process & Generate Report" button dabayein aur instant results dekhein.
+Upload one or multiple candidate PDF Resumes.
+
+Click "Process & Generate Report" to view instant insights, scores, cover letters, and download reports.
