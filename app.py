@@ -63,7 +63,8 @@ def safe_parse(raw_text):
 
 def get_working_model(api_key):
     genai.configure(api_key=api_key)
-    preferred_models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash']
+    # Prefer models with high daily free limits (1500/day)
+    preferred_models = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash']
     
     for model_name in preferred_models:
         try:
@@ -77,9 +78,10 @@ def get_working_model(api_key):
         models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         for name in models:
             clean_name = name.replace("models/", "")
-            if '2.5-flash' in clean_name:
+            # Skip models with very low free quotas like 20/day
+            if '2.5' in clean_name or '3.7' in clean_name:
                 continue 
-            if 'flash' in name.lower() or 'pro' in name.lower():
+            if 'flash' in name.lower():
                 try:
                     m = genai.GenerativeModel(clean_name)
                     m.generate_content("test", generation_config={"max_output_tokens": 5})
@@ -97,14 +99,14 @@ def safe_generate(model, prompt):
     for attempt in range(max_retries):
         try:
             response = model.generate_content(prompt)
-            # Small delay between requests to respect free tier (5 req/min)
-            time.sleep(4)
+            time.sleep(4) # Small delay to avoid Per-Minute limits
             return response
         except Exception as e:
             err_str = str(e)
+            # If rate limited, wait and retry. If daily quota hit, it will eventually break out.
             if "429" in err_str or "Quota exceeded" in err_str:
                 if attempt < max_retries - 1:
-                    time.sleep(25) # Wait for quota reset
+                    time.sleep(25) 
                     continue
             raise e
     return None
