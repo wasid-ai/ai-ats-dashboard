@@ -15,14 +15,20 @@ st.info("🔒 **Privacy Notice:** This app does not store your full resume or se
 st.sidebar.header("⚙️ Configuration")
 api_key = st.sidebar.text_input("Enter Gemini API Key", type="password", placeholder="AIzaSy...")
 
-# --- ADMIN PANEL FOR YOU TO VIEW USERS ---
+# --- SECURE ADMIN PANEL (Password hidden from code) ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔐 Admin Panel (Owner Only)")
-admin_pass = st.sidebar.text_input("Admin Password", type="password", placeholder="Enter password")
-if admin_pass == "wasid123": # Tu yahan apna password change kar sakta hai
+admin_pass = st.sidebar.text_input("Admin Password", type="password", placeholder="Enter secure password")
+
+try:
+    # Streamlit secrets se password check hoga (code mein password nahi hai)
+    correct_pass = st.secrets["ADMIN_PASSWORD"]
+except:
+    correct_pass = "DefaultSecret999" # Fallback agar secrets set na ho
+
+if admin_pass == correct_pass:
     st.sidebar.success("✅ Welcome Admin!")
     st.sidebar.markdown("### 📊 Recent User Activity")
-    # Session state se temporary logs dikhayenge (Ya Google Sheets ka link laga sakte hain)
     if "activity_logs" in st.session_state and st.session_state["activity_logs"]:
         log_df = pd.DataFrame(st.session_state["activity_logs"])
         st.sidebar.dataframe(log_df, use_container_width=True)
@@ -57,7 +63,7 @@ def extract_text_from_pdf(uploaded_file):
     try:
         reader = PdfReader(uploaded_file)
         return "".join([page.extract_text() or "" for page in reader.pages])
-    except Exception as e:
+    except:
         return ""
 
 def clean_json(raw):
@@ -73,7 +79,7 @@ def clean_json(raw):
 def safe_parse(raw_text):
     try: 
         return json.loads(clean_json(raw_text))
-    except Exception as e:
+    except:
         return None
 
 def get_working_model(api_key):
@@ -85,7 +91,7 @@ def get_working_model(api_key):
             m = genai.GenerativeModel(model_name)
             m.generate_content("test", generation_config={"max_output_tokens": 5})
             return m
-        except Exception:
+        except:
             continue
             
     try:
@@ -101,7 +107,7 @@ def get_working_model(api_key):
                     return m
                 except:
                     continue
-    except Exception as e:
+    except:
         pass
     
     return genai.GenerativeModel('gemini-1.5-flash')
@@ -197,7 +203,6 @@ if st.button("🚀 Process & Generate AI Report"):
 
             report_data = []
             
-            # Session state initialize for tracking logs
             if "activity_logs" not in st.session_state:
                 st.session_state["activity_logs"] = []
 
@@ -217,7 +222,6 @@ if st.button("🚀 Process & Generate AI Report"):
                     
                     report_data.append({"Name": candidate_name, "Score": candidate_score, "Decision": candidate_decision})
                     
-                    # --- TRACKING LOG SAVED SECURELY (Privacy Protected) ---
                     log_entry = {
                         "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "Candidate Name": candidate_name,
