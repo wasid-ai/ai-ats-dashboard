@@ -122,8 +122,8 @@ if st.button("🚀 Process & Generate AI Report"):
     else:
         with st.spinner("AI is analyzing resumes and writing Cover Letters... ⏳"):
             genai.configure(api_key=api_key)
-            # Updated to gemini-2.5-flash model
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            # Stable model name configured here
+            model = genai.GenerativeModel('gemini-1.5-flash')
             dynamic_reqs = get_jd_reqs(job_description_text, model)
 
             report_data = []
