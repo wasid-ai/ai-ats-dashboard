@@ -9,45 +9,42 @@ from datetime import datetime
 
 st.set_page_config(page_title="Ultimate AI ATS & Talent Matcher", page_icon="⚡", layout="wide")
 
-# Custom CSS with Professional Corporate Background Wallpaper & Sleek Cards
+# Custom CSS with Professional Modern Tech Theme & Sleek Cards
 st.markdown("""
     <style>
     .stApp {
-        background-image: linear-gradient(rgba(245, 247, 250, 0.92), rgba(228, 232, 240, 0.92)), 
-                          url("https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1950&q=80");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e293b 100%);
+        color: #f8fafc;
     }
     .main-title {
         font-size: 2.8rem;
         font-weight: 800;
-        color: #1e3c72;
+        color: #38bdf8;
         text-align: center;
         margin-bottom: 0px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
     .sub-title {
         font-size: 1.2rem;
-        color: #4a5568;
+        color: #94a3b8;
         text-align: center;
         margin-bottom: 30px;
     }
     .stExpander {
-        background-color: #ffffff;
-        border: 1px solid #d1d5db;
+        background-color: rgba(30, 41, 59, 0.7) !important;
+        border: 1px solid #334155 !important;
         border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         margin-bottom: 15px;
+        color: #f8fafc !important;
     }
     .footer-text {
         text-align: center;
-        color: #718096;
+        color: #64748b;
         font-size: 0.9rem;
         margin-top: 50px;
         padding: 20px;
-        border-top: 1px solid #cbd5e0;
+        border-top: 1px solid #334155;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -280,67 +277,4 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
                 if not text.strip():
                     continue
                 
-                cand = parse_resume(text, model)
-                if cand:
-                    scores = score_candidate(cand, dynamic_reqs)
-                    cover_letter = generate_cover_letter(cand, job_description_text, model)
-                    interview_qs = generate_interview_questions(cand, model)
-                    optimized_bullets = optimize_resume_bullets(cand, model)
-                    
-                    candidate_name = cand['full_name']
-                    candidate_score = scores['total']
-                    candidate_decision = scores['recommendation']
-                    
-                    if candidate_score >= 80:
-                        st.balloons()
-                    
-                    report_data.append({"Name": candidate_name, "Score": candidate_score, "Decision": candidate_decision})
-                    
-                    log_entry = {
-                        "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "Candidate Name": candidate_name,
-                        "ATS Score": candidate_score,
-                        "Status": candidate_decision
-                    }
-                    st.session_state["activity_logs"].append(log_entry)
-                    
-                    with st.expander(f"👤 {candidate_name} — Score: {candidate_score}/100 ({candidate_decision})", expanded=True):
-                        st.progress(candidate_score / 100)
-                        
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.markdown("📊 **Score Breakdown:**")
-                            st.write(f"- Experience: {scores['breakdown']['Exp']}/20 | Projects: {scores['breakdown']['Proj']}/10")
-                            st.write(f"- Core Skills: {scores['breakdown']['Req Skills']}/40 | Bonus Skills: {scores['breakdown']['Pref Skills']}/20")
-                            
-                        with col2:
-                            st.markdown("🛠️ **AI Upgrade & Bullet Optimization:**")
-                            if scores['missing_req']: st.error(f"**Missing Core Skills:** {', '.join(scores['missing_req'])}")
-                            else: st.success("✅ All Core Skills Matched!")
-                            if scores['missing_pref']: st.warning(f"**Missing Bonus Skills:** {', '.join(scores['missing_pref'])}")
-                        
-                        with st.expander("💡 View AI Resume Bullet Point Suggestions"):
-                            st.write(optimized_bullets)
-
-                        with st.expander("🎯 View Suggested Interview Questions"):
-                            st.write(interview_qs)
-                        
-                        st.markdown("### ✉️ AI-Generated Cover Letter")
-                        st.text_area(f"Tailored for {candidate_name} (Copy-Paste Ready)", value=cover_letter, height=200, key=f"cl_{candidate_name}_{i}")
-                        
-                        st.download_button(
-                            label=f"📥 Download Cover Letter for {candidate_name}",
-                            data=cover_letter,
-                            file_name=f"Cover_Letter_{candidate_name.replace(' ', '_')}.txt",
-                            mime="text/plain",
-                            key=f"dl_{candidate_name}_{i}"
-                        )
-
-            if report_data:
-                st.markdown("---")
-                st.markdown("### 🏆 Overall Leaderboard")
-                df = pd.DataFrame(report_data)
-                st.dataframe(df, use_container_width=True)
-
-# Professional Footer
-st.markdown('<p class="footer-text">⚡ Powered by Google Gemini AI &nbsp;|&nbsp; Developed with ❤️ by Wasid Khan</p>', unsafe_allow_html=True)
+                , cand = parse_resume(text, model), parse_resume(text, model) # standard parsing call below
