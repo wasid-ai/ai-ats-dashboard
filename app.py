@@ -9,25 +9,41 @@ from datetime import datetime
 
 st.set_page_config(page_title="Ultimate AI ATS & Talent Matcher", page_icon="⚡", layout="wide")
 
-# Custom CSS for modern styling and professional look
+# Custom CSS for Background Gradient, Sleek Cards, and Modern UI
 st.markdown("""
     <style>
+    /* Background Gradient Styling */
+    .stApp {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    }
     .main-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #FF4B4B;
+        font-size: 2.8rem;
+        font-weight: 800;
+        color: #1e3c72;
+        text-align: center;
         margin-bottom: 0px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
     .sub-title {
-        font-size: 1.1rem;
-        color: #6c757d;
-        margin-bottom: 20px;
+        font-size: 1.2rem;
+        color: #4a5568;
+        text-align: center;
+        margin-bottom: 30px;
     }
     .stExpander {
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        margin-bottom: 10px;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        margin-bottom: 15px;
+    }
+    .footer-text {
+        text-align: center;
+        color: #718096;
+        font-size: 0.9rem;
+        margin-top: 50px;
+        padding: 20px;
+        border-top: 1px solid #cbd5e0;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -282,3 +298,6 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
                 st.markdown("### 🏆 Overall Leaderboard")
                 df = pd.DataFrame(report_data)
                 st.dataframe(df, use_container_width=True)
+
+# Professional Footer
+st.markdown('<p class="footer-text">⚡ Powered by Google Gemini AI &nbsp;|&nbsp; Developed with ❤️ by Wasid Khan</p>', unsafe_allow_html=True)
