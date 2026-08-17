@@ -48,7 +48,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<p class="main-title">⚡ Ultimate AI-Powered ATS & Talent Matcher</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Instantly calculate ATS scores, detect skill gaps, and auto-generate tailored cover letters with Gemini AI.</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Instantly calculate ATS scores, detect skill gaps, generate interview questions, and export cover letters with Gemini AI.</p>', unsafe_allow_html=True)
 
 st.info("🔒 **Privacy Notice:** This app does not store your full resume or sensitive text. Only public metrics (Name, Email, Score, Decision) are logged securely for tracking.")
 
@@ -77,15 +77,19 @@ if admin_pass == correct_pass:
 elif admin_pass != "":
     st.sidebar.error("❌ Wrong Password")
 
-default_jd = """We are looking for an AI/ML Engineer to join our team.
-Minimum 2 years of experience required.
-Required Skills: Python, Machine Learning, Deep Learning, SQL.
-Preferred Skills: PyTorch, TensorFlow, AWS, Docker, NLP.
-Minimum Education: bachelor."""
+# Feature 1: Pre-saved Job Role Presets (Dropdown)
+role_presets = {
+    "Custom / Paste Below": "We are looking for a professional to join our team.\nMinimum 2 years of experience required.\nRequired Skills: Python, SQL, Problem Solving.",
+    "AI/ML Engineer": "We are looking for an AI/ML Engineer to join our team.\nMinimum 2 years of experience required.\nRequired Skills: Python, Machine Learning, Deep Learning, SQL.\nPreferred Skills: PyTorch, TensorFlow, AWS, Docker, NLP.\nMinimum Education: bachelor.",
+    "Data Scientist": "We are looking for a Data Scientist.\nMinimum 2 years of experience required.\nRequired Skills: Python, Pandas, Statistics, SQL, Machine Learning.\nPreferred Skills: Tableau, Scikit-Learn, BigQuery.\nMinimum Education: bachelor.",
+    "Full Stack Python Developer": "We are looking for a Python Developer.\nMinimum 1 year of experience required.\nRequired Skills: Python, Django, REST APIs, HTML, CSS, SQL.\nPreferred Skills: React, Docker, AWS.\nMinimum Education: bachelor."
+}
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📝 Target Role Description")
-job_description_text = st.sidebar.text_area("Paste Job Description Here", value=default_jd, height=250)
+selected_preset = st.sidebar.selectbox("📌 Select Preset Job Role", list(role_presets.keys()))
+default_jd = role_presets[selected_preset]
+job_description_text = st.sidebar.text_area("Edit or Paste Job Description Here", value=default_jd, height=220)
 
 EDUCATION_RANK = {"high_school": 0, "bachelor": 1, "master": 2, "phd": 3, "other": 0}
 RESUME_SCHEMA = {
@@ -207,6 +211,28 @@ def generate_cover_letter(cand, jd, model):
         pass
     return "⚠️ Failed to generate cover letter."
 
+# Feature 2: AI Interview Questions Generator
+def generate_interview_questions(cand, model):
+    prompt = f"Generate 3 smart technical interview questions and 2 HR questions tailored for candidate named {cand['full_name']} based on skills: {cand.get('technical_skills', [])} and projects: {cand.get('projects', [])}. Keep it clear and bulleted."
+    try:
+        response = safe_generate(model, prompt)
+        if response and response.text:
+            return response.text
+    except:
+        pass
+    return "Could not generate questions."
+
+# Feature 3: AI Resume Bullet Point Optimizer
+def optimize_resume_bullets(cand, model):
+    prompt = f"Provide 3 high-impact professional resume bullet point rewrites to improve resume strength for {cand['full_name']} who has skills {cand.get('technical_skills', [])}."
+    try:
+        response = safe_generate(model, prompt)
+        if response and response.text:
+            return response.text
+    except:
+        pass
+    return "Could not generate optimization suggestions."
+
 def score_candidate(candidate, reqs):
     skills_lower = [s.lower() for s in candidate.get("technical_skills", [])]
     exp = candidate.get("years_experience", 0)
@@ -263,6 +289,8 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
                 if cand:
                     scores = score_candidate(cand, dynamic_reqs)
                     cover_letter = generate_cover_letter(cand, job_description_text, model)
+                    interview_qs = generate_interview_questions(cand, model)
+                    optimized_bullets = optimize_resume_bullets(cand, model)
                     
                     candidate_name = cand['full_name']
                     candidate_score = scores['total']
@@ -292,13 +320,28 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
                             st.write(f"- Core Skills: {scores['breakdown']['Req Skills']}/40 | Bonus Skills: {scores['breakdown']['Pref Skills']}/20")
                             
                         with col2:
-                            st.markdown("🛠️ **AI Upgrade Advice:**")
+                            st.markdown("🛠️ **AI Upgrade & Bullet Optimization:**")
                             if scores['missing_req']: st.error(f"**Missing Core Skills:** {', '.join(scores['missing_req'])}")
                             else: st.success("✅ All Core Skills Matched!")
                             if scores['missing_pref']: st.warning(f"**Missing Bonus Skills:** {', '.join(scores['missing_pref'])}")
                         
+                        with st.expander("💡 View AI Resume Bullet Point Suggestions"):
+                            st.write(optimized_bullets)
+
+                        with st.expander("🎯 View Suggested Interview Questions"):
+                            st.write(interview_qs)
+                        
                         st.markdown("### ✉️ AI-Generated Cover Letter")
-                        st.text_area(f"Tailored for {candidate_name} (Copy-Paste Ready)", value=cover_letter, height=250, key=f"cl_{candidate_name}_{i}")
+                        st.text_area(f"Tailored for {candidate_name} (Copy-Paste Ready)", value=cover_letter, height=200, key=f"cl_{candidate_name}_{i}")
+                        
+                        # Feature 4: Download Cover Letter Button (.txt)
+                        st.download_button(
+                            label=f"📥 Download Cover Letter for {candidate_name}",
+                            data=cover_letter,
+                            file_name=f"Cover_Letter_{candidate_name.replace(' ', '_')}.txt",
+                            mime="text/plain",
+                            key=f"dl_{candidate_name}_{i}"
+                        )
 
             if report_data:
                 st.markdown("---")
