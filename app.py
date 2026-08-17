@@ -7,24 +7,49 @@ from pypdf import PdfReader
 from jsonschema import validate
 from datetime import datetime
 
-st.set_page_config(page_title="Ultimate AI ATS", page_icon="🚀", layout="wide")
-st.title("🚀 Ultimate AI-Powered ATS & Cover Letter Generator")
-st.markdown("Get ATS Scores, Missing Skills, and Auto-Generated Cover Letters in one click!")
-st.info("🔒 **Privacy Notice:** This app does not store your full resume or sensitive data. Only public metrics (Name, Score, Decision) are logged for tracking.")
+st.set_page_config(page_title="Ultimate AI ATS & Talent Matcher", page_icon="⚡", layout="wide")
+
+# Custom CSS for modern styling and professional look
+st.markdown("""
+    <style>
+    .main-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #FF4B4B;
+        margin-bottom: 0px;
+    }
+    .sub-title {
+        font-size: 1.1rem;
+        color: #6c757d;
+        margin-bottom: 20px;
+    }
+    .stExpander {
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        margin-bottom: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown('<p class="main-title">⚡ Ultimate AI-Powered ATS & Talent Matcher</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Instantly calculate ATS scores, detect skill gaps, and auto-generate tailored cover letters with Gemini AI.</p>', unsafe_allow_html=True)
+
+st.info("🔒 **Privacy Notice:** This app does not store your full resume or sensitive text. Only public metrics (Name, Score, Decision) are logged securely for tracking.")
 
 st.sidebar.header("⚙️ Configuration")
+st.sidebar.warning("⚠️ **Note:** Your API Key is used only for this session and is not stored. Please use your own API Key carefully.")
 api_key = st.sidebar.text_input("Enter Gemini API Key", type="password", placeholder="AIzaSy...")
 
-# --- SECURE ADMIN PANEL (Password hidden from code) ---
+# --- SECURE ADMIN PANEL ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("🔐 Admin Panel (Owner Only)")
 admin_pass = st.sidebar.text_input("Admin Password", type="password", placeholder="Enter secure password")
 
 try:
-    # Streamlit secrets se password check hoga (code mein password nahi hai)
     correct_pass = st.secrets["ADMIN_PASSWORD"]
 except:
-    correct_pass = "DefaultSecret999" # Fallback agar secrets set na ho
+    correct_pass = "DefaultSecret999"
 
 if admin_pass == correct_pass:
     st.sidebar.success("✅ Welcome Admin!")
@@ -43,7 +68,8 @@ Required Skills: Python, Machine Learning, Deep Learning, SQL.
 Preferred Skills: PyTorch, TensorFlow, AWS, Docker, NLP.
 Minimum Education: bachelor."""
 
-st.sidebar.subheader("📝 Target Role")
+st.sidebar.markdown("---")
+st.sidebar.subheader("📝 Target Role Description")
 job_description_text = st.sidebar.text_area("Paste Job Description Here", value=default_jd, height=250)
 
 EDUCATION_RANK = {"high_school": 0, "bachelor": 1, "master": 2, "phd": 3, "other": 0}
@@ -191,13 +217,13 @@ def score_candidate(candidate, reqs):
 
 uploaded_files = st.file_uploader("📂 Upload Candidate Resumes (PDF)", type=["pdf"], accept_multiple_files=True)
 
-if st.button("🚀 Process & Generate AI Report"):
+if st.button("🚀 Process & Generate AI Report", type="primary"):
     if not api_key:
         st.error("⚠️ Please enter your Gemini API Key in the sidebar!")
     elif not uploaded_files:
         st.error("⚠️ Please upload at least one PDF resume.")
     else:
-        with st.spinner("AI is analyzing resumes... ⏳"):
+        with st.spinner("🤖 AI is analyzing resumes and crafting insights... ⏳"):
             model = get_working_model(api_key)
             dynamic_reqs = get_jd_reqs(job_description_text, model)
 
@@ -220,6 +246,9 @@ if st.button("🚀 Process & Generate AI Report"):
                     candidate_score = scores['total']
                     candidate_decision = scores['recommendation']
                     
+                    if candidate_score >= 80:
+                        st.balloons()
+                    
                     report_data.append({"Name": candidate_name, "Score": candidate_score, "Decision": candidate_decision})
                     
                     log_entry = {
@@ -235,12 +264,12 @@ if st.button("🚀 Process & Generate AI Report"):
                         
                         col1, col2 = st.columns(2)
                         with col1:
-                            st.write("📊 **Score Breakdown:**")
+                            st.markdown("📊 **Score Breakdown:**")
                             st.write(f"- Experience: {scores['breakdown']['Exp']}/20 | Projects: {scores['breakdown']['Proj']}/10")
                             st.write(f"- Core Skills: {scores['breakdown']['Req Skills']}/40 | Bonus Skills: {scores['breakdown']['Pref Skills']}/20")
                             
                         with col2:
-                            st.write("🛠️ **AI Upgrade Advice:**")
+                            st.markdown("🛠️ **AI Upgrade Advice:**")
                             if scores['missing_req']: st.error(f"**Missing Core Skills:** {', '.join(scores['missing_req'])}")
                             else: st.success("✅ All Core Skills Matched!")
                             if scores['missing_pref']: st.warning(f"**Missing Bonus Skills:** {', '.join(scores['missing_pref'])}")
@@ -249,6 +278,7 @@ if st.button("🚀 Process & Generate AI Report"):
                         st.text_area(f"Tailored for {candidate_name} (Copy-Paste Ready)", value=cover_letter, height=250, key=f"cl_{candidate_name}_{i}")
 
             if report_data:
+                st.markdown("---")
                 st.markdown("### 🏆 Overall Leaderboard")
                 df = pd.DataFrame(report_data)
                 st.dataframe(df, use_container_width=True)
