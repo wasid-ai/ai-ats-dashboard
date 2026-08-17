@@ -6,16 +6,19 @@ import google.generativeai as genai
 from pypdf import PdfReader
 from jsonschema import validate
 from datetime import datetime
-import smtplib
-from email.message import EmailMessage
 
 st.set_page_config(page_title="Ultimate AI ATS & Talent Matcher", page_icon="⚡", layout="wide")
 
-# Custom CSS for Background Gradient, Sleek Cards, and Modern UI
+# Custom CSS with Professional Corporate Background Wallpaper & Sleek Cards
 st.markdown("""
     <style>
     .stApp {
-        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+        background-image: linear-gradient(rgba(245, 247, 250, 0.92), rgba(228, 232, 240, 0.92)), 
+                          url("https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1950&q=80");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
     }
     .main-title {
         font-size: 2.8rem;
@@ -50,9 +53,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<p class="main-title">⚡ Ultimate AI-Powered ATS & Talent Matcher</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Instantly calculate ATS scores, detect skill gaps, generate interview questions, and email reports with Gemini AI.</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Instantly calculate ATS scores, detect skill gaps, generate interview questions, and export cover letters with Gemini AI.</p>', unsafe_allow_html=True)
 
-st.info("🔒 **Privacy Notice:** This app does not store your full resume or sensitive text. Only public metrics (Name, Email, Score, Decision) are logged securely for tracking.")
+st.info("🔒 **Privacy Notice:** This app does not store your full resume or sensitive text. Only public metrics (Name, Score, Decision) are logged securely for tracking.")
 
 st.sidebar.header("⚙️ Configuration")
 st.sidebar.warning("⚠️ **Note:** Your API Key is used only for this session and is not stored. Please use your own API Key carefully.")
@@ -255,56 +258,15 @@ def score_candidate(candidate, reqs):
         "breakdown": {"Exp": exp_score, "Req Skills": req_score, "Pref Skills": pref_score, "Edu": edu_score, "Proj": proj_score}
     }
 
-def send_email_report(receiver_email, candidate_name, score, decision, cover_letter):
-    try:
-        sender_email = st.secrets["SENDER_EMAIL"]
-        sender_password = st.secrets["GMAIL_APP_PASSWORD"]
-        
-        msg = EmailMessage()
-        msg['Subject'] = f"Your ATS Report & Score: {score}/100 ({candidate_name})"
-        msg['From'] = sender_email
-        msg['To'] = receiver_email
-        
-        email_body = f"""
-Hello {candidate_name},
-
-Your resume has been successfully analyzed by Ultimate AI ATS!
-
-📊 ATS Score: {score}/100
-🎯 Status / Decision: {decision}
-
----
-✉️ Your AI-Generated Cover Letter:
-{cover_letter}
-
-Best regards,
-Ultimate AI ATS Team
-        """
-        msg.set_content(email_body)
-        
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(sender_email, sender_password)
-            smtp.send_message(msg)
-        return True
-    except Exception as e:
-        print(f"Email Error: {e}")
-        return False
-
-col_e1, col_e2 = st.columns([2, 1])
-with col_e1:
-    user_email = st.text_input("📧 Enter Your Email Address (To Receive Report)", placeholder="yourname@gmail.com")
-
 uploaded_files = st.file_uploader("📂 Upload Candidate Resumes (PDF)", type=["pdf"], accept_multiple_files=True)
 
 if st.button("🚀 Process & Generate AI Report", type="primary"):
     if not api_key:
         st.error("⚠️ Please enter your Gemini API Key in the sidebar!")
-    elif not user_email or "@" not in user_email:
-        st.error("⚠️ Please enter a valid Email Address before processing!")
     elif not uploaded_files:
         st.error("⚠️ Please upload at least one PDF resume.")
     else:
-        with st.spinner("🤖 AI is analyzing resumes, crafting insights, and emailing report... ⏳"):
+        with st.spinner("🤖 AI is analyzing resumes and crafting insights... ⏳"):
             model = get_working_model(api_key)
             dynamic_reqs = get_jd_reqs(job_description_text, model)
 
@@ -329,29 +291,20 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
                     candidate_score = scores['total']
                     candidate_decision = scores['recommendation']
                     
-                    email_sent = send_email_report(user_email, candidate_name, candidate_score, candidate_decision, cover_letter)
-                    
                     if candidate_score >= 80:
                         st.balloons()
                     
-                    report_data.append({"Name": candidate_name, "Email": user_email, "Score": candidate_score, "Decision": candidate_decision})
+                    report_data.append({"Name": candidate_name, "Score": candidate_score, "Decision": candidate_decision})
                     
                     log_entry = {
                         "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "Candidate Name": candidate_name,
-                        "Email": user_email,
                         "ATS Score": candidate_score,
-                        "Status": candidate_decision,
-                        "Email Sent": "✅ Yes" if email_sent else "❌ Failed"
+                        "Status": candidate_decision
                     }
                     st.session_state["activity_logs"].append(log_entry)
                     
-                    if email_sent:
-                        st.success(f"📧 Report successfully sent to **{user_email}**!")
-                    else:
-                        st.warning(f"⚠️ Report generated, but email could not be sent. Check Streamlit Secrets configuration.")
-
-                    with st.expander(f"👤 {candidate_name} ({user_email}) — Score: {candidate_score}/100 ({candidate_decision})", expanded=True):
+                    with st.expander(f"👤 {candidate_name} — Score: {candidate_score}/100 ({candidate_decision})", expanded=True):
                         st.progress(candidate_score / 100)
                         
                         col1, col2 = st.columns(2)
