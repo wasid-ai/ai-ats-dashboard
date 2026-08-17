@@ -279,4 +279,65 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
                 
                 cand = parse_resume(text, model)
                 if cand:
-                    scores = score_candidate(cand
+                    scores = score_candidate(cand, dynamic_reqs)
+                    cover_letter = generate_cover_letter(cand, job_description_text, model)
+                    interview_qs = generate_interview_questions(cand, model)
+                    optimized_bullets = optimize_resume_bullets(cand, model)
+                    
+                    candidate_name = cand['full_name']
+                    candidate_score = scores['total']
+                    candidate_decision = scores['recommendation']
+                    
+                    if candidate_score >= 80:
+                        st.balloons()
+                    
+                    report_data.append({"Name": candidate_name, "Score": candidate_score, "Decision": candidate_decision})
+                    
+                    log_entry = {
+                        "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "Candidate Name": candidate_name,
+                        "ATS Score": candidate_score,
+                        "Status": candidate_decision
+                    }
+                    st.session_state["activity_logs"].append(log_entry)
+                    
+                    with st.expander(f"👤 {candidate_name} — Score: {candidate_score}/100 ({candidate_decision})", expanded=True):
+                        st.progress(candidate_score / 100)
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown("📊 **Score Breakdown:**")
+                            st.write(f"- Experience: {scores['breakdown']['Exp']}/20 | Projects: {scores['breakdown']['Proj']}/10")
+                            st.write(f"- Core Skills: {scores['breakdown']['Req Skills']}/40 | Bonus Skills: {scores['breakdown']['Pref Skills']}/20")
+                            
+                        with col2:
+                            st.markdown("🛠️ **AI Upgrade & Bullet Optimization:**")
+                            if scores['missing_req']: st.error(f"**Missing Core Skills:** {', '.join(scores['missing_req'])}")
+                            else: st.success("✅ All Core Skills Matched!")
+                            if scores['missing_pref']: st.warning(f"**Missing Bonus Skills:** {', '.join(scores['missing_pref'])}")
+                        
+                        with st.expander("💡 View AI Resume Bullet Point Suggestions"):
+                            st.write(optimized_bullets)
+
+                        with st.expander("🎯 View Suggested Interview Questions"):
+                            st.write(interview_qs)
+                        
+                        st.markdown("### ✉️ AI-Generated Cover Letter")
+                        st.text_area(f"Tailored for {candidate_name} (Copy-Paste Ready)", value=cover_letter, height=200, key=f"cl_{candidate_name}_{i}")
+                        
+                        st.download_button(
+                            label=f"📥 Download Cover Letter for {candidate_name}",
+                            data=cover_letter,
+                            file_name=f"Cover_Letter_{candidate_name.replace(' ', '_')}.txt",
+                            mime="text/plain",
+                            key=f"dl_{candidate_name}_{i}"
+                        )
+
+            if report_data:
+                st.markdown("---")
+                st.markdown("### 🏆 Overall Leaderboard")
+                df = pd.DataFrame(report_data)
+                st.dataframe(df, use_container_width=True)
+
+# Professional Footer
+st.markdown('<p class="footer-text">⚡ Powered by Google Gemini AI &nbsp;|&nbsp; Developed with ❤️ by Wasid Khan</p>', unsafe_allow_html=True)
