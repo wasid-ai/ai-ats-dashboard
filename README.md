@@ -1,44 +1,40 @@
-#  Ultimate AI-Powered ATS & Talent Matcher
+AI Resume ATS & Talent Matcher ⚡
+Ye ek professional AI tool hai jo resumes ko check karta hai aur unhe Job Description ke hisaab se score deta hai. Ye tool recruiters aur candidates dono ke liye bahut kaam ka hai.
 
-A smart, modern, and high-performance Applicant Tracking System (ATS) built using **Python**, **Streamlit**, and **Google Gemini AI**. Designed to help recruiters and job seekers instantly parse resumes, calculate exact ATS scores, detect missing skills, and auto-generate tailored cover letters.
+✨ Ye tool kya-kya karta hai?
+Resume Scan: PDF resume ko upload karo, aur ye tool turant uska data nikal lega.
 
----
+ATS Score: Resume ka ATS score calculate karta hai (0-100) aur batata hai ki candidate job ke liye fit hai ya nahi.
 
-##  Complete Project Journey & What We Have Built / Updated
+Skill Gap Analysis: Resume mein kaun si zaroori skills ki kami hai, ye tool wahi batata hai.
 
-Here is a step-by-step breakdown of everything implemented, updated, and secured in this project:
+Interview Questions: Candidate ki skills ke hisaab se AI khud interview ke sawal bana ke deta hai.
 
-### 1. Core Resume & AI Features
-*  PDF Resume Parsing:** Allows uploading multiple PDF resumes simultaneously. The app extracts text seamlessly using `pypdf`.
-*  Dynamic Job Description Analysis:** Powered by Google Gemini AI to automatically extract required skills, experience, and education levels from any pasted job description.
-* **Smart Scoring Mechanism:** Calculates a total score out of 100 based on experience match, core required skills, preferred bonus skills, education level, and project counts.
-*  Skill Gap & Upgrade Advice:** Instantly identifies missing core and bonus skills so applicants know exactly what to improve.
-*  AI Cover Letter Generator:** Automatically writes professional, persuasive, and ready-to-copy cover letters customized for each candidate.
-*  Interactive Leaderboard:** Displays a clean leaderboard table summarizing all processed candidates and their decision statuses (`STRONG HIRE`, `PROCEED TO INTERVIEW`, `NEEDS UPGRADE`).
+Cover Letter: Ek badhiya sa cover letter likh kar deta hai jise tum download kar sakte ho.
 
-### 2. UI, Design & Visual Upgrades (Recently Added)
-*  Modern Gradient Background:** Upgraded the app appearance with a sleek, professional gradient background instead of a plain layout.
-*  Custom UI Cards & Styling:** Added clean borders, shadow effects, responsive expanders, and custom headings.
-*  Celebratory Animations:** Integrated automatic celebratory balloons whenever a candidate scores 80 or above (`STRONG HIRE`).
-*  Developer Credits Footer:** Added a professional branding footer (`Developed with ❤️ by Wasid Khan`) at the bottom of the app.
+Resume Improvement: Resume mein kya sudhaar (improvement) kar sakte hain, uske liye bhi suggestions deta hai.
 
-### 3. Security & Admin Panel Upgrades (Crucial Updates)
-*  Secure Admin Panel:** A password-protected sidebar area where the owner can view live session tracking logs (Candidate Name, ATS Score, and Status).
-*  Hardcoded Password Removal (Updated for Security):** Initially, passwords were kept inside the code. To prevent anyone from viewing the password on GitHub, we updated it to use **Streamlit Secrets** (`st.secrets["ADMIN_PASSWORD"]`). 
-*  Privacy & Safety Notices:** Added clear warnings and notices regarding session-only API key usage and privacy compliance so users feel secure.
+🚀 Kaise use karein?
+API Key daalein: Sidebar mein apni Google Gemini API key enter karein.
 
----
+Job Role chunein: Dropdown se role select karein ya apna Job Description paste karein.
 
-##  Future Features We Can Add Next
+Resume upload karein: PDF resume upload karein.
 
-*  Direct Export Options:** Download generated cover letters and reports as `.docx` or `.pdf` files.
-*  Permanent Database:** Integrate Supabase or MongoDB to save activity logs permanently across refreshes.
-*  Head-to-Head Comparison:** Compare two resumes side-by-side against the same job description.
-* **📧 Email Integration:** Send generated cover letters directly to candidates via email.
+Result dekhein: 'Process' button dabayein aur kuch hi seconds mein aapko ATS score, Interview questions, aur Cover Letter mil jayega.
 
----
+🛠️ Tech Stack (Kya use kiya hai?)
+Language: Python
 
-##  Tech Stack Used
-* **Frontend / UI:** Streamlit
-* **AI Model Engine:** Google Gemini API (`gemini-1.5-flash`, etc.)
-* **Data & Validation:** Pandas, PyPDF, JSON Schema
+Framework: Streamlit (Web interface ke liye)
+
+AI Brain: Google Gemini AI (Resume analysis ke liye)
+
+Data Handling: Pandas
+
+🔐 Admin Features
+Isme ek secure Admin Panel hai jahan sirf aap (admin) check kar sakte hain ki website par kaun-kaun resume check kar raha hai. Iske liye ADMIN_PASSWORD use hota hai.
+
+Developed with ❤️ by Wasid Khan
+
+Bas, isse copy-paste kar de apne GitHub ke README file mein. Ye ekdum simple aur samajhne mein aasaan hai! 🚀
