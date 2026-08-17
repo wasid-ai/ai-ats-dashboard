@@ -6,6 +6,8 @@ import google.generativeai as genai
 from pypdf import PdfReader
 from jsonschema import validate
 from datetime import datetime
+import smtplib
+from email.message import EmailMessage
 
 st.set_page_config(page_title="Ultimate AI ATS & Talent Matcher", page_icon="⚡", layout="wide")
 
@@ -48,7 +50,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<p class="main-title">⚡ Ultimate AI-Powered ATS & Talent Matcher</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Instantly calculate ATS scores, detect skill gaps, generate interview questions, and export cover letters with Gemini AI.</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Instantly calculate ATS scores, detect skill gaps, generate interview questions, and email reports with Gemini AI.</p>', unsafe_allow_html=True)
 
 st.info("🔒 **Privacy Notice:** This app does not store your full resume or sensitive text. Only public metrics (Name, Email, Score, Decision) are logged securely for tracking.")
 
@@ -77,7 +79,6 @@ if admin_pass == correct_pass:
 elif admin_pass != "":
     st.sidebar.error("❌ Wrong Password")
 
-# Feature 1: Pre-saved Job Role Presets (Dropdown)
 role_presets = {
     "Custom / Paste Below": "We are looking for a professional to join our team.\nMinimum 2 years of experience required.\nRequired Skills: Python, SQL, Problem Solving.",
     "AI/ML Engineer": "We are looking for an AI/ML Engineer to join our team.\nMinimum 2 years of experience required.\nRequired Skills: Python, Machine Learning, Deep Learning, SQL.\nPreferred Skills: PyTorch, TensorFlow, AWS, Docker, NLP.\nMinimum Education: bachelor.",
@@ -211,7 +212,6 @@ def generate_cover_letter(cand, jd, model):
         pass
     return "⚠️ Failed to generate cover letter."
 
-# Feature 2: AI Interview Questions Generator
 def generate_interview_questions(cand, model):
     prompt = f"Generate 3 smart technical interview questions and 2 HR questions tailored for candidate named {cand['full_name']} based on skills: {cand.get('technical_skills', [])} and projects: {cand.get('projects', [])}. Keep it clear and bulleted."
     try:
@@ -222,7 +222,6 @@ def generate_interview_questions(cand, model):
         pass
     return "Could not generate questions."
 
-# Feature 3: AI Resume Bullet Point Optimizer
 def optimize_resume_bullets(cand, model):
     prompt = f"Provide 3 high-impact professional resume bullet point rewrites to improve resume strength for {cand['full_name']} who has skills {cand.get('technical_skills', [])}."
     try:
@@ -256,10 +255,44 @@ def score_candidate(candidate, reqs):
         "breakdown": {"Exp": exp_score, "Req Skills": req_score, "Pref Skills": pref_score, "Edu": edu_score, "Proj": proj_score}
     }
 
-# User Email Input for tracking
+def send_email_report(receiver_email, candidate_name, score, decision, cover_letter):
+    try:
+        sender_email = st.secrets["SENDER_EMAIL"]
+        sender_password = st.secrets["GMAIL_APP_PASSWORD"]
+        
+        msg = EmailMessage()
+        msg['Subject'] = f"Your ATS Report & Score: {score}/100 ({candidate_name})"
+        msg['From'] = sender_email
+        msg['To'] = receiver_email
+        
+        email_body = f"""
+Hello {candidate_name},
+
+Your resume has been successfully analyzed by Ultimate AI ATS!
+
+📊 ATS Score: {score}/100
+🎯 Status / Decision: {decision}
+
+---
+✉️ Your AI-Generated Cover Letter:
+{cover_letter}
+
+Best regards,
+Ultimate AI ATS Team
+        """
+        msg.set_content(email_body)
+        
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(sender_email, sender_password)
+            smtp.send_message(msg)
+        return True
+    except Exception as e:
+        print(f"Email Error: {e}")
+        return False
+
 col_e1, col_e2 = st.columns([2, 1])
 with col_e1:
-    user_email = st.text_input("📧 Enter Your Email Address (For Report & Verification)", placeholder="yourname@gmail.com")
+    user_email = st.text_input("📧 Enter Your Email Address (To Receive Report)", placeholder="yourname@gmail.com")
 
 uploaded_files = st.file_uploader("📂 Upload Candidate Resumes (PDF)", type=["pdf"], accept_multiple_files=True)
 
@@ -271,7 +304,7 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
     elif not uploaded_files:
         st.error("⚠️ Please upload at least one PDF resume.")
     else:
-        with st.spinner("🤖 AI is analyzing resumes and crafting insights... ⏳"):
+        with st.spinner("🤖 AI is analyzing resumes, crafting insights, and emailing report... ⏳"):
             model = get_working_model(api_key)
             dynamic_reqs = get_jd_reqs(job_description_text, model)
 
@@ -296,6 +329,8 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
                     candidate_score = scores['total']
                     candidate_decision = scores['recommendation']
                     
+                    email_sent = send_email_report(user_email, candidate_name, candidate_score, candidate_decision, cover_letter)
+                    
                     if candidate_score >= 80:
                         st.balloons()
                     
@@ -306,10 +341,16 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
                         "Candidate Name": candidate_name,
                         "Email": user_email,
                         "ATS Score": candidate_score,
-                        "Status": candidate_decision
+                        "Status": candidate_decision,
+                        "Email Sent": "✅ Yes" if email_sent else "❌ Failed"
                     }
                     st.session_state["activity_logs"].append(log_entry)
                     
+                    if email_sent:
+                        st.success(f"📧 Report successfully sent to **{user_email}**!")
+                    else:
+                        st.warning(f"⚠️ Report generated, but email could not be sent. Check Streamlit Secrets configuration.")
+
                     with st.expander(f"👤 {candidate_name} ({user_email}) — Score: {candidate_score}/100 ({candidate_decision})", expanded=True):
                         st.progress(candidate_score / 100)
                         
@@ -334,7 +375,6 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
                         st.markdown("### ✉️ AI-Generated Cover Letter")
                         st.text_area(f"Tailored for {candidate_name} (Copy-Paste Ready)", value=cover_letter, height=200, key=f"cl_{candidate_name}_{i}")
                         
-                        # Feature 4: Download Cover Letter Button (.txt)
                         st.download_button(
                             label=f"📥 Download Cover Letter for {candidate_name}",
                             data=cover_letter,
