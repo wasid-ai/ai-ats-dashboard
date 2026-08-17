@@ -259,22 +259,4 @@ uploaded_files = st.file_uploader("📂 Upload Candidate Resumes (PDF)", type=["
 
 if st.button("🚀 Process & Generate AI Report", type="primary"):
     if not api_key:
-        st.error("⚠️ Please enter your Gemini API Key in the sidebar!")
-    elif not uploaded_files:
-        st.error("⚠️ Please upload at least one PDF resume.")
-    else:
-        with st.spinner("🤖 AI is analyzing resumes and crafting insights... ⏳"):
-            model = get_working_model(api_key)
-            dynamic_reqs = get_jd_reqs(job_description_text, model)
-
-            report_data = []
-            
-            if "activity_logs" not in st.session_state:
-                st.session_state["activity_logs"] = []
-
-            for i, f in enumerate(uploaded_files):
-                text = extract_text_from_pdf(f)
-                if not text.strip():
-                    continue
-                
-                , cand = parse_resume(text, model), parse_resume(text, model) # standard parsing call below
+        st.error("⚠️ Please enter your
