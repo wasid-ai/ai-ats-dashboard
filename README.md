@@ -1,41 +1,41 @@
 # AI Resume ATS & Talent Matcher ⚡
 
-Ye ek professional AI tool hai jo resumes ko check karta hai aur unhe Job Description ke hisaab se score deta hai. Ye tool recruiters aur candidates dono ke liye bahut kaam ka hai.
+This is a smart AI tool that checks resumes and scores them based on a Job Description. It is very useful for both recruiters and job seekers.
 
 ---
 
-### ✨ Ye tool kya-kya karta hai?
+### ✨ What can this tool do?
 
-- **Resume Scan:** PDF resume ko upload karo, aur ye tool turant uska data nikal lega.
-- **ATS Score:** Resume ka ATS score calculate karta hai (0-100) aur batata hai ki candidate job ke liye fit hai ya nahi.
-- **Skill Gap Analysis:** Resume mein kaun si zaroori skills ki kami hai, ye tool wahi batata hai.
-- **Interview Questions:** Candidate ki skills ke hisaab se AI khud interview ke sawal bana ke deta hai.
-- **Cover Letter:** Ek badhiya sa cover letter likh kar deta hai jise tum download kar sakte ho.
-- **Resume Improvement:** Resume mein kya sudhaar (improvement) kar sakte hain, uske liye bhi suggestions deta hai.
-
----
-
-### 🚀 Kaise use karein?
-
-1. **API Key daalein:** Sidebar mein apni Google Gemini API key enter karein.
-2. **Job Role chunein:** Dropdown se role select karein ya apna Job Description paste karein.
-3. **Resume upload karein:** PDF resume upload karein.
-4. **Result dekhein:** 'Process' button dabayein aur kuch hi seconds mein aapko ATS score, Interview questions, aur Cover Letter mil jayega.
+* **Resume Scan:** Upload a PDF resume, and the tool will instantly read all the details.
+* **ATS Score:** Calculates the ATS score (0 to 100) to show if the candidate is a good match for the job.
+* **Skill Gap Analysis:** Shows which important skills are missing in the resume.
+* **Interview Questions:** Automatically generates smart technical and HR interview questions based on the resume.
+* **Cover Letter:** Writes a professional cover letter that you can download with one click.
+* **Resume Improvement:** Gives helpful tips on how to improve the resume.
 
 ---
 
-### 🛠️ Tech Stack (Kya use kiya hai?)
+### 🚀 How to use it?
 
-- **Language:** Python
-- **Framework:** Streamlit (Web interface ke liye)
-- **AI Brain:** Google Gemini AI (Resume analysis ke liye)
-- **Data Handling:** Pandas
+1. **Enter API Key:** Type your Google Gemini API Key in the sidebar.
+2. **Select Job Role:** Choose a preset role from the dropdown or paste your own Job Description.
+3. **Upload Resume:** Upload one or more PDF resumes.
+4. **Get Results:** Click the 'Process' button to instantly see the ATS score, interview questions, and cover letter.
+
+---
+
+### 🛠️ Tech Stack (Technologies used)
+
+* **Language:** Python
+* **Framework:** Streamlit (For the website interface)
+* **AI Brain:** Google Gemini AI (For analyzing resumes)
+* **Data Handling:** Pandas
 
 ---
 
 ### 🔐 Admin Features
 
-Isme ek secure Admin Panel hai jahan sirf aap (admin) check kar sakte hain ki website par kaun-kaun resume check kar raha hai. Iske liye `ADMIN_PASSWORD` use hota hai.
+It comes with a secure Admin Panel where only you (the owner) can see a record of who is checking their resume. This is protected by an `ADMIN_PASSWORD`.
 
 ---
 
