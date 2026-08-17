@@ -12,7 +12,6 @@ st.set_page_config(page_title="Ultimate AI ATS & Talent Matcher", page_icon="⚡
 # Custom CSS for Background Gradient, Sleek Cards, and Modern UI
 st.markdown("""
     <style>
-    /* Background Gradient Styling */
     .stApp {
         background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
     }
@@ -51,7 +50,7 @@ st.markdown("""
 st.markdown('<p class="main-title">⚡ Ultimate AI-Powered ATS & Talent Matcher</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Instantly calculate ATS scores, detect skill gaps, and auto-generate tailored cover letters with Gemini AI.</p>', unsafe_allow_html=True)
 
-st.info("🔒 **Privacy Notice:** This app does not store your full resume or sensitive text. Only public metrics (Name, Score, Decision) are logged securely for tracking.")
+st.info("🔒 **Privacy Notice:** This app does not store your full resume or sensitive text. Only public metrics (Name, Email, Score, Decision) are logged securely for tracking.")
 
 st.sidebar.header("⚙️ Configuration")
 st.sidebar.warning("⚠️ **Note:** Your API Key is used only for this session and is not stored. Please use your own API Key carefully.")
@@ -231,11 +230,18 @@ def score_candidate(candidate, reqs):
         "breakdown": {"Exp": exp_score, "Req Skills": req_score, "Pref Skills": pref_score, "Edu": edu_score, "Proj": proj_score}
     }
 
+# User Email Input for tracking
+col_e1, col_e2 = st.columns([2, 1])
+with col_e1:
+    user_email = st.text_input("📧 Enter Your Email Address (For Report & Verification)", placeholder="yourname@gmail.com")
+
 uploaded_files = st.file_uploader("📂 Upload Candidate Resumes (PDF)", type=["pdf"], accept_multiple_files=True)
 
 if st.button("🚀 Process & Generate AI Report", type="primary"):
     if not api_key:
         st.error("⚠️ Please enter your Gemini API Key in the sidebar!")
+    elif not user_email or "@" not in user_email:
+        st.error("⚠️ Please enter a valid Email Address before processing!")
     elif not uploaded_files:
         st.error("⚠️ Please upload at least one PDF resume.")
     else:
@@ -265,17 +271,18 @@ if st.button("🚀 Process & Generate AI Report", type="primary"):
                     if candidate_score >= 80:
                         st.balloons()
                     
-                    report_data.append({"Name": candidate_name, "Score": candidate_score, "Decision": candidate_decision})
+                    report_data.append({"Name": candidate_name, "Email": user_email, "Score": candidate_score, "Decision": candidate_decision})
                     
                     log_entry = {
                         "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "Candidate Name": candidate_name,
+                        "Email": user_email,
                         "ATS Score": candidate_score,
                         "Status": candidate_decision
                     }
                     st.session_state["activity_logs"].append(log_entry)
                     
-                    with st.expander(f"👤 {candidate_name} — Score: {candidate_score}/100 ({candidate_decision})", expanded=True):
+                    with st.expander(f"👤 {candidate_name} ({user_email}) — Score: {candidate_score}/100 ({candidate_decision})", expanded=True):
                         st.progress(candidate_score / 100)
                         
                         col1, col2 = st.columns(2)
